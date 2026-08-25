@@ -167,9 +167,7 @@ export class IdeaPage {
 
     // Lessons
     this.lessonsButton = page.getByRole("button", { name: "Lessons" });
-    // .last(): on an empty Lessons section the app shows an extra empty-state
-    // "Add lesson" CTA alongside the section's real button (confirmed live) —
-    // the same duplicate-button pattern already seen on "Add project".
+  
     this.addLessonButton = page
       .locator("button")
       .filter({ hasText: /^Add lesson$/ })
@@ -193,7 +191,8 @@ export class IdeaPage {
     this.addLessonRecommen = page.getByRole("textbox", {
       name: "What should others do",
     });
-    this.updateLessonBtn = page.getByRole("button", { name: "Update lesson" });
+  
+    this.updateLessonBtn = page.getByRole('button', { name: 'Update lesson' });
 
     // this.hideLessonDialog = page.getByRole('dialog').filter({ hasText: 'Add lesson' });
 
@@ -209,8 +208,7 @@ export class IdeaPage {
       .locator('button[data-slot="popover-trigger"]')
       .filter({ hasText: "Select a user" });
     this.addTeamMemberHeading = page.getByText("Add team member");
-    // The user picker is a "Suggestions" listbox of role="option" items; index 0
-    // is always "(Select All)", so index 1 is the first real, selectable user.
+   
     this.addMember = page.getByLabel("Suggestions").getByRole("option").nth(1);
 
     // Links
@@ -225,9 +223,7 @@ export class IdeaPage {
     });
     this.linkUrlTextbox = page.getByRole("textbox", { name: "https://" });
     this.addLinkBtn2 = page.getByRole("button", { name: "Add link" }).nth(1);
-    // Scoped by status text, not just role="combobox" — the rich text toolbar's
-    // "Paragraph" style picker is also a combobox on the same page since the
-    // editor no longer lives in an isolated iframe.
+    
     this.ideasStatusDropdown = page
       .getByRole("combobox")
       .filter({ hasText: /Submitted|Active|Review|Planned/ })
@@ -241,11 +237,6 @@ export class IdeaPage {
     this.FunnelBack = page.getByRole("link", { name: "Back to funnel" });
     this.followButton = page.getByRole("button", { name: "Follow" });
 
-    // Idea like (sidebar icon row, distinct from the "Follow" toolbar button).
-    // Both the icon (heart vs thumbs-up) and accessible name ("Like idea" vs none,
-    // falling back to its count text) vary by domain, so target it by position in
-    // the icon row instead: it's always the first button, immediately before
-    // Comments/Bookmark/Views, whichever domain's markup renders it.
     this.bookmarkIdeaButton = page.getByRole("button", { name: /Bookmark/ });
     this.ideaLikeButton = this.bookmarkIdeaButton
       .locator("xpath=..")
@@ -272,8 +263,6 @@ export class IdeaPage {
     await this.addIdeaButton.waitFor({ state: "visible" });
     await this.addIdeaButton.click();
 
-    // Some flows land directly on manual entry without an intermediate
-    // "Enter manually" choice screen, so don't hard-fail if it never appears.
     const manualChoiceVisible = await this.enterManuallyButton
       .isVisible({ timeout: 15000 })
       .catch(() => false);
@@ -521,16 +510,14 @@ export class IdeaPage {
     await this.addLessonNotWorked.fill(lessonNotWorked);
     await this.addLessonRecommen.fill(lessonRecommend);
 
-    await this.updateLessonBtn.waitFor({ state: "visible" });
+    await expect(this.updateLessonBtn, 'Update lesson button should be visible').toBeVisible({ timeout: 30000 });
     await this.updateLessonBtn.click();
     await this.page.waitForFunction(() => {
-      const dialog = [...document.querySelectorAll('[role="dialog"]')].find(
-        (d) => d.textContent.includes("Capture learnings"),
-      );
-      return !dialog || dialog.style.pointerEvents !== "auto";
-    });
+    const dialog = [...document.querySelectorAll('[role="dialog"]')].find(d => d.textContent.includes('Capture learnings'));
+    return !dialog || dialog.style.pointerEvents !== 'auto';
+  });
 
-    console.log("✅ Lesson has been added successfully...");
+  console.log('✅ Lesson has been added successfully...');
   }
 
   //addComment
@@ -573,11 +560,6 @@ export class IdeaPage {
   async addLink() {
     await this.loadingOverlay.waitFor({ state: "hidden" });
 
-    // The "Links" widget could not be located anywhere in the current UI
-    // (checked the idea's sidebar and its Overview tab) — it may have been
-    // removed from the product. Don't hard-fail the whole idea flow on a
-    // feature that may no longer exist; skip it with a clear warning instead,
-    // and still run the rest of the flow (status/follow/like/back-to-funnel).
     const linksVisible = await this.addLinkdropdown
       .isVisible({ timeout: 10000 })
       .catch(() => false);
@@ -609,12 +591,6 @@ export class IdeaPage {
 
     await this.ideaLikeButton.click();
 
-    // "Back to funnel" has been observed redirecting through
-    // /settings/funnelmanagement?...&redirect=true instead of landing
-    // directly on the Kanban view — confirm where we actually land, and
-    // force navigation to the Kanban URL if the click didn't get us there,
-    // so the next step (drag-and-drop on the board) doesn't silently poll
-    // the wrong page until the test timeout.
     await this.FunnelBack.click();
     await this.page
       .waitForURL(/\/studio\/funnels\/\d+\?view=kanban/, {
